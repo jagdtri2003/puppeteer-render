@@ -13,16 +13,17 @@ app.use(cors({origin: '*',}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-let browser;
+// let browser;
 
-(async () => {
-  browser = await puppeteer.launch();
-})();
+// (async () => {
+//   browser = await puppeteer.launch();
+// })();
 
 
 app.get("/api/", async (req, res) => {
   console.log("Req Hit !");
   try {
+    const browser = await puppeteer.launch();
     const asin = req.query.asin;
     const url = `https://www.amazon.in/dp/${asin}`;
 
@@ -93,6 +94,7 @@ app.get("/api/", async (req, res) => {
 
 app.get('/search/', async (req, res) => {
   console.log("Req Hit !");
+  const browser = await puppeteer.launch();
   const page = await browser.newPage();
 
   // Set common headers
