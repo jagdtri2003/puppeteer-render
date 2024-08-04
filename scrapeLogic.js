@@ -1,5 +1,9 @@
 const puppeteer = require("puppeteer");
-require("dotenv").config();
+const userAgents = require('user-agents');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+
+puppeteer.use(StealthPlugin());
+
 
 const scrapeLogic = async (res) => {
   const browser = await puppeteer.launch({
@@ -15,31 +19,68 @@ const scrapeLogic = async (res) => {
         : puppeteer.executablePath(),
   });
   try {
+    const url = `https://www.amazon.in/dp/${asin}`;
     const page = await browser.newPage();
+    // Set a random User-Agent for each request
+    const userAgent = new userAgents().toString();
+    await page.setUserAgent(userAgent);
+    // Set common headers
+    await page.setExtraHTTPHeaders({
+      'accept-language': 'en-US,en;q=0.9',
+    });
 
-    await page.goto("https://developer.chrome.com/");
+    await page.goto(url, { waitUntil: 'domcontentloaded' });
+    console.timeEnd('Page Load Time');
 
-    // Set screen size
-    await page.setViewport({ width: 1080, height: 1024 });
+    const content = await page.content();
+    console.log('Content loaded successfully');
+    const $ = cheerio.load(content);
 
-    // Type into search box
-    await page.type(".search-box__input", "automate beyond recorder");
+    const desc_points = [];
+    $('#feature-bullets ul li').each((i, el) => {
+      desc_points.push($(el).text().trim());
+    });
+    const name = $('#productTitle').text().trim();
+    // console.log('Name:', name);
+    const image = $('#imgTagWrapperId').find('img').attr('src');
+    // console.log('Image:', image);
+    const ratingText = $('#acrPopover').attr('title');
+    // console.log('Rating Text:', ratingText);
+    const reviews = $('#acrCustomerReviewText').first().text().trim();
+    // console.log('Reviews:', reviews);
+    const deliveryMsg = $('#deliveryBlockMessage').text().replace('Details', '').trim();
+    // console.log('Delivery Message:', deliveryMsg);
+    const price = $('.priceToPay .a-price-whole').text();
+    // console.log('Price:', price);
+    const deal = $('#dealBadgeSupportingText').text().trim() !== '' ? true : false;
+    // console.log('Deal:', deal);
+    const discountPrice = $('.a-text-price span.a-offscreen').first().text();
+    // console.log('Discount Price:', discountPrice);
+    const sales = $('#social-proofing-faceout-title-tk_bought').text().trim();
+    // console.log('Sales:', sales);
 
-    // Wait and click on first result
-    const searchResultSelector = ".search-box__link";
-    await page.waitForSelector(searchResultSelector);
-    await page.click(searchResultSelector);
+    if (!ratingText) {
+      throw new Error('Rating text not found');
+    }
 
-    // Locate the full title with a unique string
-    const textSelector = await page.waitForSelector(
-      "text/Customize and automate"
-    );
-    const fullTitle = await textSelector.evaluate((el) => el.textContent);
+    const rating = parseFloat(ratingText.slice(0, 3));
+    // console.log('Rating:', rating);
 
-    // Print the full title
-    const logStatement = `The title of this blog post is ${fullTitle}`;
-    console.log(logStatement);
-    res.send(logStatement);
+    const result = {
+      name,
+      image,
+      rating,
+      reviews,
+      deliveryMsg,
+      price,
+      deal,
+      discountPrice,
+      sales,
+      description: desc_points,
+    };
+    res.json(result);
+  
+
   } catch (e) {
     console.error(e);
     res.send(`Something went wrong while running Puppeteer: ${e}`);
