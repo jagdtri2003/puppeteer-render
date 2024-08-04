@@ -1,9 +1,5 @@
-const puppeteer = require('puppeteer-extra');
+const puppeteer = require('puppeteer');
 const userAgents = require('user-agents');
-const StealthPlugin = require('puppeteer-extra-plugin-stealth');
-
-puppeteer.use(StealthPlugin());
-
 
 const scrapeLogic = async (res) => {
   const browser = await puppeteer.launch({
