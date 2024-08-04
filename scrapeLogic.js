@@ -1,4 +1,4 @@
-const puppeteer = require("puppeteer");
+const puppeteer = require('puppeteer-extra');
 const userAgents = require('user-agents');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 
